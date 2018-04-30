@@ -42,13 +42,13 @@ function isValidBoardWithShips(expectedShips, board) {
 
 /** Helpers */
 function isVerticallyAligned(rows, cols) {
-  const sortedRows = rows.slice().sort((a, b) => a - b));
+  const sortedRows = rows.slice().sort((a, b) => a - b);
   
   return areConsecutives(sortedRows) && areAllTheSame(cols);
 }
 
 function isHorizontallyAligned(rows, cols) {
-  const sortedCols = cols.slice().sort((a, b) => a - b));
+  const sortedCols = cols.slice().sort((a, b) => a - b);
 
   return areConsecutives(sortedCols) && areAllTheSame(rows);
 }
