@@ -1,5 +1,4 @@
 (function(){
-
 	const ships = {
 		T: 2,
 		D: 3,
