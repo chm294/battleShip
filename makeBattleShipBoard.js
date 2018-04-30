@@ -1,151 +1,162 @@
-const ships = {
-	T : 2,
-	D: 3,
-	S: 3,
-	B: 4,
-	C: 5,
-}
+(function(){
 
-const MAX_COLLISIONS = 5; 
-
-function generateBoard(boardSize, ships) {
-	// create board matrix
-	const board = [];
-	for(let i = 0; i < boardSize; i++) {
-		const line = [];
-		for(let j = 0; j < boardSize; j++) {
-			line.push('.')
-		}
-		board.push(line);
+	const ships = {
+		T: 2,
+		D: 3,
+		S: 3,
+		B: 4,
+		C: 5,
 	}
 
-	let collisionCount = 0;
+	const board = [];	
+	const boardSize = 10; 
 
-	let placeShip = function(ship) {
-		let coordinates = getRandomCoordiantes(boardSize, board);
-		let direction = determineDirection(coordinates, ships[ship], board);
+	function main() {
+		generateBoard();
+		placeShips();
+		console.log(board);
+		return board;
+	}
 
-		if(!!direction) {
-			toggleShip(coordinates, direction, ships[ship], ship, board);
-		} else {
-			if(collisionCount > MAX_COLLISIONS) {
-				console.error('board too small and too many conflicts. Consider passing in larger board size or using smaller ships for your game');
-				return;
+
+	function generateBoard() {
+		// create board matrix with array of arrays
+		for(let row = 0; row < boardSize; row++) {
+			let line = [];
+			for(let column = 0; column < boardSize; column++) {
+				line.push('.');
 			}
-			collisionCount += 1
-			placeShip(ship);
+			board.push(line);
 		}
 	}
 
-	// generate ships
-	for( var ship in ships) {
-		if(ships[ship] > boardSize) {
-			console.error('ships too large for current board. Adjustment required.')
-			return;
-		} else {
-			placeShip(ship);
+	function placeShips() {
+		for(let ship in ships) {
+			if(ships[ship] > boardSize) {
+				throw new Error('ships cannot be larger than board');
+			} else {
+				let allPossibleShipPlacements = findAllOptions(ship);
+				if (allPossibleShipPlacements.length <= 0) {
+					throw new Error("No possible placement");
+				} else {
+					let randomNum = getRandomNum(0, allPossibleShipPlacements.length);
+					let placement = allPossibleShipPlacements[randomNum];
+					toggleShip(ship, ships[ship], placement);
+				}
+			}
+		}
+		return board;
+	}
+
+	function toggleShip(ship, shipSize, placement) {
+		if(placement.direction === "up") {
+			let topBound = placement.row - shipSize + 1;
+			while(topBound <= placement.row) {
+				board[topBound][placement.column] = ship;
+				topBound += 1;
+			}
+		} else if (placement.direction === "right") {
+			let rightBound = placement.column + shipSize -1;
+			while(rightBound >= placement.column) {
+				board[placement.row][rightBound] = ship;
+				rightBound -= 1;
+			}
+		} else if (placement.direction === "down") {
+			let bottomBound = placement.row + shipSize -1;
+			while(bottomBound >= placement.row) {
+				board[bottomBound][placement.column] = ship;
+				bottomBound -= 1;
+			}
+		} else if (placement.direction === "left") {
+			let leftBound = placement.column - shipSize + 1;
+			while(leftBound <= placement.column) {
+				board[placement.row][leftBound] = ship;
+				leftBound += 1;
+			}
 		}
 	}
-	return board;
-}
 
 
+	function findAllOptions(ship) { //returns an array of all options for ship placement on board
+		let allPossibleShipPlacements = [];
+		for(let row = 0; row < boardSize; row++) {
+			for(let column = 0; column < boardSize; column++) {
+				const spot = {};
+				spot.column = column;
+				spot.row = row;
+				if(checkUp(row, column, row - ships[ship] + 1)) {
+					spot.direction = 'up';
+					allPossibleShipPlacements.push(spot);
+				}
+				if(checkRight(row, column, column + ships[ship] - 1)) {
+					spot.direction = 'right';
+					allPossibleShipPlacements.push(spot);
+				}
+				if(checkDown(row, column, row + ships[ship] -1)) {
+					spot.direction = 'down';
+					allPossibleShipPlacements.push(spot);
+				}
+				if(checkLeft(row, column, column - ships[ship] + 1)) {
+					spot.direction = 'left';
+					allPossibleShipPlacements.push(spot);
+				}
+			}
+		}
+		return allPossibleShipPlacements;
+	};
 
-// decide placement
-function getRandomCoordiantes(boardSize, board) {
-	let m = Math.floor(Math.random() * (boardSize));
-	let n = Math.floor(Math.random() * (boardSize));
-	while(board[m][n] !== '.') {
-		m = Math.floor(Math.random() * (boardSize));
-		n = Math.floor(Math.random() * (boardSize)); 
+	function checkUp(row, column, upperBound) {
+		if(board[upperBound] === undefined) { return false; } // upperBound is out of bound
+		while(upperBound <= row) {
+			if(board[upperBound][column] === '.') {
+				upperBound += 1;
+			} else {
+				return false; // there is overlap
+			}
+		}
+		return true;
 	}
-	return [m, n];
-}
 
-// decide orientation (up, right, down, left)
-function determineDirection(coordinates, shipSize, board) {
-	let m = coordinates[0];
-	let n = coordinates[1];
-	let options = ['up', 'right', 'down', 'left'];
-
-	while(m >= coordinates[0] - shipSize) { //up
-		if(board[m] !== undefined && board[m][n] === '.') {
-			m -= 1;
-		} else {
-			options.splice(options.indexOf('up'), 1);
-			break;
+	function checkRight(row, column, rightBound) {
+		if(board[row][rightBound] === undefined) { return false; } //rightBound is out of bound 
+		while(rightBound >= column) {
+			if(board[row][rightBound] === '.') {
+				rightBound -= 1;
+			} else {
+				return false;
+			}
 		}
+		return true;
 	}
-	m = coordinates[0];
-	
-	while(n <= coordinates[1] + shipSize) { // right
-		if( board[m][n] !== undefined && board[m][n] === '.') {
-			n += 1;
-		} else {
-			options.splice(options.indexOf('right'), 1);
-			break;
+
+	function checkDown(row, column, bottomBound) {
+		if(!board[bottomBound]) { return false; }
+		while(bottomBound >= row) {
+			if(board[bottomBound][column] === '.') {
+				bottomBound -= 1;
+			} else {
+				return false;
+			}
 		}
+		return true;
 	}
-	n = coordinates[1];
 
-	while(m <= coordinates[0] + shipSize) { //down
-		if( board[m] !== undefined && board[m][n] === '.') {
-			m += 1;
-		} else {
-			options.splice(options.indexOf('down'), 1);
-			break;
+	function checkLeft(row, column, leftBound) {
+		if(!board[row][leftBound]) { return false; }
+		while(leftBound <= column) {
+			if(board[row][leftBound] === '.') {
+				leftBound += 1;
+			} else {
+				return false;
+			}
 		}
+		return true;
 	}
-	m = coordinates[0];
 
-	while(n >= coordinates[1] - shipSize) { // left
-		if(board[m][n] !== undefined && board[m][n] === '.') {
-			n -= 1;
-		} else {
-			options.splice(options.indexOf('left'), 1);
-			break;
-		}
+	// calculate random number within Range
+	function getRandomNum(min, max) {
+		return Math.floor(Math.random() * (max - min)) + min;
 	}
-	n = coordinates[1];
 
-	if(options.length === 0) {
-		return false;
-	} else {
-		// return an orientation, up, right, down or left
-		return options[Math.floor(Math.random() * (options.length))];
-	}
-}
-
-
-function toggleShip(coordinates, direction, shipSize, ship, board) {
-	let m = coordinates[0];
-	let n = coordinates[1];
-	board[m][n] = ship;
-
-	if(direction === 'up'){
-		while( m > coordinates[0] - shipSize + 1) {
-			board[m -= 1][n] = ship;
-		}
-	} else if (direction === 'right') {
-		while(n < coordinates[1] + shipSize - 1) {
-			board[m][n += 1] = ship;
-		}
-	} else if (direction === 'down') {
-		while(m < coordinates[0] + shipSize -1) {
-			board[m += 1][n] = ship;
-		}
-	} else if (direction === 'left') {
-		while(n > coordinates[1] - shipSize + 1) {
-			board[m][n -= 1] = ship;
-		}
-	}
-}
-
-const board = generateBoard(2, ships);
-console.log(board);
-// RUN TIME
-// MODULARITY WITH HELPER FUNCTIONS
-// FLEXIBILITY / EASY MANIPULATION
-// what if board is 100 x 100
-// what if board is 3 x 3
-// randomness
+	main();
+})();
